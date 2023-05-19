@@ -187,3 +187,32 @@ export function readChinaPollution(callback) {
         if (loaded === 2) callback(new PollutionData(pollution, geoJson));
     });
 }
+let chinaGeo;
+let codeMap;
+
+export function loadChinaGeo(callback) {
+    axios.get("/mapdata/china.json").then(res => {
+        chinaGeo = res.data;
+        codeMap = new Map();
+        for (let featureIndex in chinaGeo['features']) {
+            let code = chinaGeo['features'][featureIndex]['properties']['code'];
+            let name = chinaGeo['features'][featureIndex]['properties']['name'];
+            codeMap.set(code, name);
+        }
+        callback(chinaGeo);
+    });
+}
+
+export function getNameMap(day, callback) {
+    let date = dayToMonthAndDay(day)
+    let map = []
+    axios.get("http://127.0.0.1:8000/getData/china/2018/" + date.month + "/" + date.day).then(res => {
+        let lines = res.data.substring(1, res.data.length - 1).split(')(')
+        for (let ind in lines) {
+            let cols = lines[ind].split(",")
+            let data = {name: codeMap.get(Number(cols[19])), value: Number(cols[1])}
+            map.push(data);
+        }
+        callback(map);
+    })
+}

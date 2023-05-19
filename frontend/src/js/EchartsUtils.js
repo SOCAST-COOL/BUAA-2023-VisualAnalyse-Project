@@ -1,6 +1,6 @@
 import * as echarts from "echarts";
 import axios from "axios";
-import {readChinaPollution} from "@/js/DataReader";
+import {readChinaPollution, getNameMap, loadChinaGeo} from "@/js/DataReader";
 
 
 const colors = ["#0000FF","#0080FF","#00FFFF","#00FF80","#00FF00","#80FF00","#FFFF00","#FF8000","#FF0000"]
@@ -8,20 +8,25 @@ let pollutionData, chinaGeo, myChart;
 
 export function init() {
     myChart = echarts.init(document.getElementById('main'));
-    readChinaPollution(function (data) {
-        let day = 0;
-        pollutionData = data;
-        chinaGeo = pollutionData.geoJson;
-        setInterval(function () {
-            if (day === 365) day = 1;
-            else day++;
-            draw(day);
-        }, 1000)
+    // readChinaPollution(function (data) {
+    //     let day = 0;
+    //     pollutionData = data;
+    //     chinaGeo = pollutionData.geoJson;
+    //     setInterval(function () {
+    //         if (day === 365) day = 1;
+    //         else day++;
+    //         draw(day);
+    //     }, 1000)
+    // })
+    loadChinaGeo(function (data) {
+        chinaGeo = data
+        getNameMap(1, function(map) {
+            draw(map);
+        });
     })
 }
 
-export function draw(day) {
-    let nameMap = pollutionData.getNameMap(day);
+export function draw(nameMap) {
     echarts.registerMap('中国', chinaGeo);//#2
     let option = {
         visualMap: {
