@@ -20,4 +20,5 @@ from . import db
 
 urlpatterns = [
     path('db/', db.db),
+    path('getData/<str:type>/<int:year>/<int:month>/<int:day>/', db.getData),
 ]

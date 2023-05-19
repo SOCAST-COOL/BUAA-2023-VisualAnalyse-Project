@@ -31,3 +31,22 @@ def db(request):
         connection.close()
     print(time() - start)
     return HttpResponse(result)
+
+def getData(request, type, year, month, day):
+    if type == 'city':
+        sheetName = 'cities'
+    elif type == 'china':
+        sheetName = 'china'
+    connection = sqlite3.connect('db.sqlite3')
+    cur = connection.cursor()
+    start = time()
+    try:
+        sql = "select * from {} where date ='{}_{}_{}'".format(sheetName, year, month, day)
+        cur.execute(sql)
+        # 获取所有记录列表
+        result = cur.fetchall()
+    finally:
+        cur.close()
+        connection.close()
+    print(time() - start)
+    return HttpResponse(result)
