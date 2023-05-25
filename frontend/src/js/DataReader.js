@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const PollutionView = 18, WeatherView = 9;
+const Range = new Map([
+    [PollutionView, {min: 0, max: 100}],
+    [WeatherView, {min: 238, max: 310}]]);
 const months = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
+let times = null;
 /*
     2023-5-14 初始化
     将csv数据转储到类中
@@ -174,6 +178,21 @@ export function dayToMonthAndDay(day) {
     }
 }
 
+export function getTimes() {
+    if (times === null) {
+        times = []
+        for (let year = 2015; year <= 2018; year++) {
+            for (let month = 1; month <= 12; month++) {
+                let max_day = month === 2 ? (year === 2016 ? 29 : 28) : months[month];
+                for (let day = 1; day <= max_day; day++) {
+                    times.push(year + "_" + month + "_" + day)
+                }
+            }
+        }
+    }
+    return times;
+}
+
 export function readChinaPollution(callback) {
     let geoJson, pollution, loaded = 0;
     axios.get("/mapdata/china.json").then(res => {
@@ -203,16 +222,18 @@ export function loadChinaGeo(callback) {
     });
 }
 
-export function getNameMap(day, callback) {
-    let date = dayToMonthAndDay(day)
+export function getNameMap(day, view_type, callback) {
     let map = []
-    axios.get("http://127.0.0.1:8000/getData/china/2018/" + date.month + "/" + date.day).then(res => {
+    let date = day.split('_')
+    axios.get("http://127.0.0.1:8000/getData/china/" + date[0] + "/" + date[1] + "/" + date[2]).then(res => {
         let lines = res.data.substring(1, res.data.length - 1).split(')(')
         for (let ind in lines) {
             let cols = lines[ind].split(",")
-            let data = {name: codeMap.get(Number(cols[19])), value: Number(cols[1])}
+            let data = {name: codeMap.get(Number(cols[19])), value: Number(cols[view_type])}
             map.push(data);
         }
-        callback(map);
+        callback({map: map, range: Range.get(view_type)});
     })
 }
+
+export {PollutionView, WeatherView};

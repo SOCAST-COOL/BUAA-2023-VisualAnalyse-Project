@@ -1,6 +1,14 @@
 <template>
   <div id="app">
-<!--    <svg id="chart"></svg>-->
+    <el-select v-model="value" placeholder="请选择" @change="renew()"
+               style="position:absolute; float: right; right:10px; top: 10px;z-index: 999">
+      <el-option
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
+      </el-option>
+    </el-select>
     <div id="main"></div>
   </div>
 </template>
@@ -8,6 +16,7 @@
 <script>
 import axios from 'axios';
 import {init} from "@/js/EchartsUtils";
+import {PollutionView, WeatherView} from "@/js/DataReader";
 
 export default {
   name: 'App',
@@ -15,7 +24,8 @@ export default {
   },
   data() {
     return {
-      value: 15
+      value: '0',
+      options: [{value: '0', label: '污染视图'}, {value: '1', label: '气象视图'}]
     }
   },
   created() {
@@ -24,14 +34,13 @@ export default {
     });
   },
   methods: {
-    renew() {
-      // let startTime = new Date().getTime();
-      // axios.get('http://127.0.0.1:8000/db/').then(function(e) {
-      //   console.log(e.data);
-      //   console.log(new Date().getTime() - startTime);
-      // })
-      // initMap();
-      init();
+    renew(view_type) {
+      if (this.value == '0') {
+        init(PollutionView);
+      }
+      else {
+        init(WeatherView);
+      }
     }
   }
 }
