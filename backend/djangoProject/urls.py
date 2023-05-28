@@ -19,6 +19,6 @@ from django.urls import path
 from . import db
 
 urlpatterns = [
-    path('db/', db.db),
-    path('getData/<str:type>/<int:year>/<int:month>/<int:day>/', db.getData),
+    path('getData/<int:code>/<int:year>/<int:month>/<int:day>/', db.getData),
+    path('getWind/<int:year>/<int:month>/<int:day>/', db.getWind),
 ]

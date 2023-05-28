@@ -11,42 +11,35 @@ city_sheets = [
     '540000_summary', '610000_summary', '620000_summary', '630000_summary', '640000_summary',
     '650000_summary', '700000_summary', '810000_summary']
 
-def db(request):
+def getData(request, code, year, month, day):
     connection = sqlite3.connect('db.sqlite3')
     cur = connection.cursor()
-    result = []
     start = time()
+    if code == 100000:
+        sql = "select * from china where date ='{}_{}_{}'".format(year, month, day)
+    else:
+        sql = "select * from cities where date ='{}_{}_{}' and {} <= code and code < {}".format(year, month, day, code, code + 10000)
     try:
-        # for city_sheet in city_sheets:
-        #     sql = "SELECT * FROM `" + city_sheet + "` where `date`='2018_1_3'"
-        #     cur.execute(sql)
-        #     # 获取所有记录列表
-        #     result += cur.fetchall()
-        sql = "select * from cities where date ='2017_12_10'"
         cur.execute(sql)
         # 获取所有记录列表
         result = cur.fetchall()
     finally:
         cur.close()
         connection.close()
-    print(time() - start)
+    print('{} to get {}'.format(time() - start, sql))
     return HttpResponse(result)
 
-def getData(request, type, year, month, day):
-    if type == 'city':
-        sheetName = 'cities'
-    elif type == 'china':
-        sheetName = 'china'
+def getWind(request, year, month, day):
     connection = sqlite3.connect('db.sqlite3')
     cur = connection.cursor()
     start = time()
     try:
-        sql = "select * from {} where date ='{}_{}_{}'".format(sheetName, year, month, day)
+        sql = "select * from `wind_{}_2` where date ='{}_{}'".format(year, month, day)
         cur.execute(sql)
         # 获取所有记录列表
         result = cur.fetchall()
     finally:
         cur.close()
         connection.close()
-    print(time() - start)
+    print('{} to get {}'.format(time() - start, sql))
     return HttpResponse(result)
