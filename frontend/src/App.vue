@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-<!--    左侧返回区域-->
+<!--    左侧返回按钮-->
     <el-button type="text" class="router-btn" @click="routerReturn">
       返回
     </el-button>
@@ -42,15 +42,19 @@ export default {
   },
   data() {
     return {
-      value: '0',
+      value: '0',//记录数据显示的类型
+      //所有可供选择的数据
       options: [{value: '0', label: '污染视图'}, {value: '1', label: '温度视图'},
         {value: '2', label: '湿度视图'}, {value: '3', label: '气压视图'}],
+      //是否显示风向
       showWind: true,
     }
   },
   created() {
     this.$nextTick(()=> {
+      //初始化图表
       init();
+      //绘制图表
       this.renew()
     });
   },
@@ -73,6 +77,7 @@ export default {
       }
     },
     routerReturn() {
+      //控制返回按钮
       returnRouter();
     },
   }
