@@ -1,9 +1,12 @@
 import axios from "axios";
 
-const PollutionView = 18, WeatherView = 9;
+const PollutionView = 18, TEMPView = 9, RHView = 10, PSFCView = 11;
 const Range = new Map([
-    [PollutionView, {min: 0, max: 100}],
-    [WeatherView, {min: 238, max: 310}]]);
+    [PollutionView, {min: 0, max: 400}],
+    [TEMPView, {min: 238, max: 310}],
+    [RHView, {min: 6.75, max: 100}],
+    [PSFCView, {min: 53556.65, max: 104488.18}],
+]);
 const months = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 let times = null;
 /*
@@ -209,8 +212,11 @@ export function readChinaPollution(callback) {
 let chinaGeo;
 let codeMap;
 
-export function loadChinaGeo(callback) {
-    axios.get("/mapdata/china.json").then(res => {
+export function loadChinaGeo(code, callback) {
+    let fileName;
+    if (code === 100000) fileName = "/mapdata/china.json";
+    else fileName = "/mapdata/province/" + code + ".json";
+    axios.get(fileName).then(res => {
         chinaGeo = res.data;
         codeMap = new Map();
         for (let featureIndex in chinaGeo['features']) {
@@ -218,22 +224,42 @@ export function loadChinaGeo(callback) {
             let name = chinaGeo['features'][featureIndex]['properties']['name'];
             codeMap.set(code, name);
         }
-        callback(chinaGeo);
+        callback({map: chinaGeo, center: chinaGeo['propertity']['center']});
     });
 }
 
-export function getNameMap(day, view_type, callback) {
+export function getNameMap(code, day, view_type, callback) {
     let map = []
     let date = day.split('_')
-    axios.get("http://127.0.0.1:8000/getData/china/" + date[0] + "/" + date[1] + "/" + date[2]).then(res => {
+    axios.get("http://127.0.0.1:8000/getData/" + code + "/" + date[0] + "/" + date[1] + "/" + date[2])
+        .then(res => {
         let lines = res.data.substring(1, res.data.length - 1).split(')(')
         for (let ind in lines) {
             let cols = lines[ind].split(",")
-            let data = {name: codeMap.get(Number(cols[19])), value: Number(cols[view_type])}
+            let data = {name: codeMap.get(Number(cols[19])), value: Number(cols[view_type]), code: Number(cols[19])}
             map.push(data);
         }
         callback({map: map, range: Range.get(view_type)});
     })
 }
 
-export {PollutionView, WeatherView};
+export function getWind(code, day, callback) {
+    let scale = 0.7;
+    let date = day.split('_')
+    axios.get('http://127.0.0.1:8000/getWind/' + date[0] + "/" + date[1] + "/" + date[2])
+        .then(res => {
+        let result = []
+        let lines = res.data.substring(1, res.data.length - 1).split(')(')
+        for (let ind in lines) {
+            let cols = lines[ind].split(",");
+            let u = Number(cols[1]), v = Number(cols[2]), lat = Number(cols[3]), lon = Number(cols[4]);
+            let sum = Math.sqrt(u * u + v * v)
+            u = u / sum * scale;
+            v = v / sum * scale;
+            result.push([{coord: [lon + u, lat + v]}, {coord: [lon - u, lat - v]}])
+        }
+        callback(result);
+    })
+}
+
+export {PollutionView, TEMPView, RHView, PSFCView};

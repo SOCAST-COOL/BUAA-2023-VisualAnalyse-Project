@@ -1,47 +1,88 @@
 import * as echarts from "echarts";
 import axios from "axios";
-import {getTimes, getNameMap, loadChinaGeo} from "@/js/DataReader";
+import {getTimes, getNameMap, loadChinaGeo, getWind} from "@/js/DataReader";
 
 
 const colors = ["#0000FF","#0080FF","#00FFFF","#00FF80","#00FF00","#80FF00","#FFFF00","#FF8000","#FF0000"]
-let pollutionData = null, chinaGeo = null, myChart = null;
+let chinaGeo = null, myChart = null, pollutionData = null, wind=null;
+let view_type = null, show_wind = null;
+let maxLoadedNumber = 2;
 let timelineIndex = 0;
-let currentThread = 0;
+let code = 100000, changeCode = true;
+let center = null, zoom = null;
 
-export function init(view_type) {
-    //限制只能够由一个视图进行绘制
-    currentThread++;
-    let thread = currentThread;
-    //初始化时调用
-    if (myChart == null) {
-        myChart = echarts.init(document.getElementById('main'));
-    }
-    //读取数据并绘制地图
-    if (chinaGeo == null) {
-        loadChinaGeo(function (data) {
-            chinaGeo = data
-            getNameMap(getTimes()[timelineIndex], view_type, function(data) {
-                draw(data.map, data.range);
-            });
-        })
-    }
-    //根据当前日期绘制地图
-    else {
-        getNameMap(getTimes()[timelineIndex], view_type, function(data) {
-            draw(data.map, data.range);
-        });
-    }
-    //每次日期发生变化时调用
+export function init(callback) {
+    myChart = echarts.init(document.getElementById('main'));
     myChart.on('timelinechanged', function (timeLineIndex) {
-        if (thread !== currentThread) return;
         timelineIndex = timeLineIndex.currentIndex;
-        getNameMap(getTimes()[timelineIndex], view_type, function(data) {
-            draw(data.map, data.range);
-        });
+        loadData()
     })
+    myChart.on('dblclick', function (params) {
+        if (code !== 100000) return;
+        code = params.data.code;
+        changeCode = true;
+        loadData();
+    })
+    myChart.on("georoam", params => {
+        zoom = myChart.getOption().series[0].zoom;
+        center = myChart.getOption().series[0].center;
+    });
 }
 
-export function draw(nameMap, range) {
+export function returnRouter() {
+    if (code === 100000) return;
+    code = 100000;
+    changeCode = true;
+    loadData();
+}
+
+export function initDrawing(type, show) {
+    view_type = type;
+    show_wind = show;
+    loadData();
+}
+
+function loadPollutionData() {
+    let loaded = 0;
+    getNameMap(code, getTimes()[timelineIndex], view_type, function(data) {
+        pollutionData = data;
+        loaded++;
+        if (loaded === maxLoadedNumber) draw();
+    });
+    if (show_wind) {
+        getWind(code, getTimes()[timelineIndex], function(data) {
+            wind = data;
+            loaded++;
+            if (loaded === maxLoadedNumber) draw();
+        });
+    }
+    else {
+        wind = [];
+        loaded++;
+        if (loaded === maxLoadedNumber) draw();
+    }
+}
+
+function loadData() {
+    if (changeCode) {
+        changeCode = false;
+        loadChinaGeo(code, function (data) {
+            chinaGeo = data.map;
+            center = data.center;
+            zoom = 1;
+            loadData()
+        });
+    }
+    else {
+        loadPollutionData()
+    }
+
+}
+
+export function draw() {
+    let nameMap = pollutionData.map;
+    let range = pollutionData.range;
+    console.log(nameMap, chinaGeo)
     echarts.registerMap('中国', chinaGeo);//#2
     let option = {
         visualMap: {
@@ -55,8 +96,9 @@ export function draw(nameMap, range) {
             }
         },
         timeline: {
+            zlevel: 999,
             axisType: 'category',
-            playInterval: 500,
+            playInterval: 700,
             label:{
                 interval: function(index, value) {
                     return value.endsWith("_1_1")
@@ -82,27 +124,54 @@ export function draw(nameMap, range) {
                 name: '中国地图',
                 type: 'map',
                 mapType: '中国',//#3
+                roam: true,
                 label: {
                     show: true
                 },
+                zoom: zoom,
+                center: center,
                 itemStyle: {
                     normal: {
                         label: {show: true},
                     },
                     emphasis: {
-
                         label: {show: true}
-                    }
-                },
-                tooltip: {
-                    trigger: "item",
-                    formatter(params) {
-                        return "str" + params.data.value
                     }
                 },
                 layoutCenter: ["50%", "50%"],
                 layoutSize: "100%",
                 data: nameMap,
+            },
+            {
+                type: 'map',
+                mapType: '中国',//#3
+                data: [],
+                markLine: {
+                    zlevel: 2,
+                    smooth:false,
+                    symbol: ['none', 'arrow'],
+                    tooltip: false,
+                    itemStyle : {
+                        normal: {
+                            label:{show:false},
+                            borderWidth:1,
+                            lineStyle: {
+                                type: 'solid',
+                                shadowBlur: 10
+                            }
+                        }
+                    },
+                    effect : {
+                        show: true,
+                        scaleSize: 1,
+                        period: 30,
+                        color: '#fff',
+                        shadowBlur: 10
+                    },
+                    animation: true,
+                    label: false,
+                    data : wind
+                },
             }
         ]
     }
