@@ -21,4 +21,10 @@ from . import db
 urlpatterns = [
     path('getData/<int:code>/<int:year>/<int:month>/<int:day>/', db.getData),
     path('getWind/<int:year>/<int:month>/<int:day>/', db.getWind),
+    ## 获取日期热力图
+    path('getDateHeatMap/<int:code>/<int:year>/', db.getDateHeatMap),
+    ## 获取按月平均的数据，code为地区，中国为100000
+    path('getMonthAverage/<int:code>/<int:year>/', db.getMonthAverage),
+    ## 获取按年平均的数据，code为地区，中国为100000
+    path('getYearAverage/<int:code>/', db.getYearAverage),
 ]
